@@ -1,0 +1,23 @@
+[Unit]
+Description=AI Auto-Pilot
+After=local-fs.target
+
+[Service]
+ExecStartPre=-podman network create --ignore app
+
+[Container]
+ContainerName=intelligent-train
+Image=quay.io/demo-ai-edge-crazy-train/intelligent-train:latest
+Network=app
+PublishPort=8080:8080
+EnvironmentFile=/etc/intelligent-train.env
+
+# Needed for Nvidia GPU Acceleration
+PodmanArgs=--runtime /usr/bin/nvidia-container-runtime
+GroupAdd=keep-groups
+SecurityLabelDisable=true
+Environment=NVIDIA_VISIBLE_DEVICES=nvidia.com/gpu=all
+
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target

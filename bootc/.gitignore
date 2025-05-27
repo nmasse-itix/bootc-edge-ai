@@ -1,0 +1,8 @@
+/etc
+*.pem
+auth.json
+cache-*/
+*.iso
+*.qcow2
+*.tar
+osbuild.ks

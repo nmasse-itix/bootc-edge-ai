@@ -1,0 +1,15 @@
+[Unit]
+Description=Run nvidia-ctk cdi generate
+Wants=local-fs.target
+After=local-fs.target
+ConditionPathExists=!/etc/cdi/nvidia.yaml
+ConditionPathExists=/usr/bin/nvidia-ctk
+ConditionArchitecture=arm64
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=nvidia-ctk cdi generate --output=/etc/cdi/nvidia
+
+[Install]
+WantedBy=multi-user.target

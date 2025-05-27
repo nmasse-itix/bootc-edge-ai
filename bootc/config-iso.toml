@@ -1,0 +1,12 @@
+[customizations.installer.kickstart]
+contents = """
+lang fr_FR.UTF-8
+keyboard fr
+timezone UTC
+rootpw --lock
+zerombr
+clearpart --all --initlabel
+autopart --type=plain
+reboot --eject
+bootloader --append="console=tty0 console=ttyS0"
+"""

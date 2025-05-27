@@ -1,0 +1,32 @@
+FROM registry.redhat.io/rhel9/rhel-bootc:9.4
+
+ARG ADMIN_USERNAME=demo \
+    ADMIN_PASSWORD=redhat \
+    NVIDIA_KERNEL_VERSION=5.14.0-427.22.1.el9_4
+
+RUN set -Eeuo pipefail ; \
+    if ! grep -qxF 'keepcache=1'; then \
+      sed -i.bak '/^\[main\]$/a keepcache=1' /etc/dnf/dnf.conf ; \
+    fi ; \
+    echo "Replacing current kernel with a version compatible with the kernel modules shipped by Nvidia" ; \
+    mkdir -p /tmp/rpms ; \
+    dnf download -y --destdir /tmp/rpms kernel{,-core,-modules,-modules-core}-$NVIDIA_KERNEL_VERSION ; \
+    rpm-ostree override replace /tmp/rpms/*.rpm ; \
+    rm -rf /tmp/rpms ; \
+    dnf config-manager --enable codeready-builder-for-rhel-9-$(arch)-rpms ; \
+    dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm ; \
+    dnf install -y mkpasswd NetworkManager-wifi podman skopeo git mosquitto ; \
+    if [[ "$(arch)" == "aarch64" ]]; then \
+      echo "Installing the Nvidia stuff..." ; \
+      curl -sSfL -o /etc/yum.repos.d/nvidia-l4t.repo https://repo.download.nvidia.com/jetson/rhel-9.4/r36.3.1/nvidia-l4t.repo ; \
+      curl -sSfL -o /etc/yum.repos.d/nvidia-container-toolkit.repo https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo ; \
+      dnf config-manager --enable nvidia-container-toolkit-experimental ; \
+      dnf install -y nvidia-jetpack-kmod nvidia-jetpack-all nvidia-container-toolkit-base ; \
+    fi ; \
+    useradd -m -G wheel -p "$(echo -n "$ADMIN_PASSWORD" | mkpasswd -m bcrypt --stdin)" "$ADMIN_USERNAME"
+
+ADD --chown=root:root root /
+
+RUN set -Eeuo pipefail ; \
+    systemctl enable nvidia-ctk-init.service ; \
+    systemctl enable repo-intelligent-train.service
