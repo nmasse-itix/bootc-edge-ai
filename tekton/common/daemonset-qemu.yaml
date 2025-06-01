@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: multiarch-qemu
+spec:
+  selector:
+    matchLabels:
+      name: multiarch-qemu
+  template:
+    metadata:
+      labels:
+        name: multiarch-qemu
+    spec:
+      # The service account must have SCC "privileged"
+      serviceAccountName: buildbot
+      nodeSelector:
+        # foo: bar
+      containers:
+      - name: multiarch-qemu
+        image: docker.io/multiarch/qemu-user-static:7.2.0-1
+        command:
+        - /bin/sh
+        - -c
+        - /register --reset --persistent yes && sleep INF
+        securityContext:
+          privileged: true

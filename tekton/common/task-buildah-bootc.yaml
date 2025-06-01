@@ -1,0 +1,89 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: buildah-bootc
+spec:
+  params:
+  - name: context-dir
+    type: string
+    default: .
+  - name: containerfile-path
+    type: string
+    default: Containerfile
+  - name: image-name
+    type: string
+  workspaces:
+  - name: source-workspace
+    description: Workspace containing source code
+  - name: caches
+    description: RW storage to cache build artefacts
+    mountPath: /caches
+  - name: entitlements
+    description: RW storage for RHEL entitlements
+    mountPath: /entitlements
+  - description: An optional workspace that allows providing a .docker/config.json file for Buildah to access the container registry. The file should be placed at the root of the Workspace with name config.json or .dockerconfigjson.
+    name: dockerconfig
+    optional: true
+    mountPath: /auth
+  volumes:
+  - name: container-storage
+    emptyDir: {}
+  steps:
+  - name: build
+    image: registry.redhat.io/rhel9/buildah:9.6
+    env:
+    - name: STORAGE_DRIVER
+      value: overlay
+    - name: RHEL_IMAGE
+      value: registry.redhat.io/rhel9/rhel-bootc
+    - name: RHEL_VERSION
+      value: "9.4"
+    - name: TARGET_IMAGE
+      value: "$(params.image-name)"
+    - name: REGISTRY_AUTH_FILE
+      value: /auth/.dockerconfigjson
+    script: |
+      #!/bin/bash
+      set -Eeuo pipefail
+
+      # All architectures to build for
+      declare -a ARCHITECTURES=("x86_64" "aarch64")
+
+      # Build images
+      declare -A PODMAN_ARCH_OPTS=(["aarch64"]="--platform linux/arm64/v8" ["x86_64"]="--platform linux/amd64")
+      for arch in "${ARCHITECTURES[@]}"; do
+        buildah pull ${PODMAN_ARCH_OPTS[$arch]} $RHEL_IMAGE:$RHEL_VERSION
+        buildah tag $RHEL_IMAGE:$RHEL_VERSION $RHEL_IMAGE-$arch:$RHEL_VERSION
+        buildah rmi $RHEL_IMAGE:$RHEL_VERSION
+
+        echo "Building image for $arch..."
+        mkdir -p /tmp/entitlements
+        tar -xf /entitlements/$arch.tar -C /tmp/entitlements 
+        buildah bud ${PODMAN_ARCH_OPTS[$arch]} --no-cache --from "$RHEL_IMAGE-$arch:$RHEL_VERSION" \
+                    -v /tmp/entitlements/etc/pki/entitlement/:/etc/pki/entitlement:z -v /tmp/entitlements/etc/rhsm:/etc/rhsm:z \
+                    -v /tmp/entitlements/etc/pki/entitlement/:/run/secrets/etc-pki-entitlement:z -v /tmp/entitlements/etc/rhsm:/run/secrets/rhsm:z \
+                    -v /tmp/entitlements/etc/yum.repos.d:/etc/yum.repos.d:z -v /caches/$arch/dnf:/var/cache/dnf:z \
+                    -v /caches/$arch/rpm-ostree:/var/cache/rpm-ostree:z \
+                    -t localhost/image-$arch \
+                    -f $(workspaces.source-workspace.path)/$(params.containerfile-path) \
+                    $(workspaces.source-workspace.path)/$(params.context-dir)
+      done
+
+      # Push Manifest
+      echo "Pushing to $TARGET_IMAGE..."
+      buildah manifest create localhost/image
+      for arch in "${ARCHITECTURES[@]}"; do
+        buildah manifest add localhost/image localhost/image-$arch
+      done
+      buildah manifest push localhost/image $TARGET_IMAGE
+    securityContext:
+      ## Buildah needs privileges to use the "overlay" Storage Driver.
+      privileged: true
+
+      ## The "vfs" Storage Driver however requires less privileges.
+      #capabilities:
+      #  add:
+      #    - SETFCAP
+    volumeMounts:
+    - name: container-storage
+      mountPath: /var/lib/containers

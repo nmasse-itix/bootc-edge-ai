@@ -1,0 +1,62 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: bootc
+spec:
+
+  workspaces:
+  - name: source-workspace
+  - name: registry-token
+  - name: caches
+  - name: entitlements
+
+  params:
+  - name: git-url
+    type: string
+  - name: git-revision
+    type: string
+    default: main
+  - name: image-name
+    type: string
+  - name: context-dir
+    type: string
+    default: "."
+  - name: containerfile-path
+    type: string
+    default: "Containerfile"
+
+  tasks:
+
+  - name: clone-repo
+    taskRef:
+      kind: Task
+      name: git-clone
+    params:
+    - name: url
+      value: $(params.git-url)
+    - name: revision
+      value: $(params.git-revision)
+    workspaces:
+    - name: output
+      workspace: source-workspace
+  
+  - name: buildah-bootc
+    runAfter: ["clone-repo"]
+    taskRef:
+      name: buildah-bootc
+    params:
+    - name: image-name
+      value: $(params.image-name)
+    - name: context-dir
+      value: $(params.context-dir)
+    - name: containerfile-path
+      value: $(params.containerfile-path)
+    workspaces:
+    - name: source-workspace
+      workspace: source-workspace
+    - name: dockerconfig
+      workspace: registry-token
+    - name: caches
+      workspace: caches
+    - name: entitlements
+      workspace: entitlements

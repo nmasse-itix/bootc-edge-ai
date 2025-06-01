@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: bootc-
+spec:
+  pipelineRef:
+    name: bootc
+  params:
+  - name: git-url
+    value: https://github.com/nmasse-itix/bootc-edge-ai.git
+  - name: git-revision
+    value: main
+  - name: image-name
+    value: quay.io/nmasse-redhat/bootc-edge-ai
+  - name: context-dir
+    value: bootc
+  - name: containerfile-path
+    value: "bootc/Containerfile"
+  workspaces:
+  - name: caches
+    persistentVolumeClaim:
+      claimName: bootc-caches
+  - name: entitlements
+    persistentVolumeClaim:
+      claimName: bootc-entitlements
+  - name: source-workspace
+    volumeClaimTemplate:
+      spec:
+        storageClassName: efs-csi
+        accessModes:
+        - ReadWriteMany
+        resources:
+          requests:
+            storage: 1Gi
+  - name: registry-token
+    secret:
+      secretName: registry-authentication
+  taskRunTemplate:
+    serviceAccountName: buildbot
