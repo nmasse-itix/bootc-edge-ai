@@ -31,4 +31,4 @@ fi
 podman manifest create localhost/base-image
 podman manifest add localhost/base-image localhost/base-image-x86_64
 podman manifest add localhost/base-image localhost/base-image-aarch64
-podman manifest push localhost/base-image "$TARGET_IMAGE"
+podman manifest push --all --format v2s2 localhost/base-image "docker://$TARGET_IMAGE"
