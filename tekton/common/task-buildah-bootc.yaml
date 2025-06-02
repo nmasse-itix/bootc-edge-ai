@@ -57,6 +57,7 @@ spec:
         buildah rmi $RHEL_IMAGE:$RHEL_VERSION
 
         echo "Building image for $arch..."
+        rm -rf /tmp/entitlements
         mkdir -p /tmp/entitlements
         tar -xf /entitlements/$arch.tar -C /tmp/entitlements 
         buildah bud ${PODMAN_ARCH_OPTS[$arch]} --no-cache --from "$RHEL_IMAGE-$arch:$RHEL_VERSION" \
@@ -75,7 +76,7 @@ spec:
       for arch in "${ARCHITECTURES[@]}"; do
         buildah manifest add localhost/image localhost/image-$arch
       done
-      buildah manifest push localhost/image $TARGET_IMAGE
+      buildah manifest push localhost/image docker://$TARGET_IMAGE
     securityContext:
       ## Buildah needs privileges to use the "overlay" Storage Driver.
       privileged: true
