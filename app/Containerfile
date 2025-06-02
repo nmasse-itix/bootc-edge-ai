@@ -4,6 +4,10 @@ ADD *.py *.jpg *.onnx /opt/app
 WORKDIR /opt/app
 RUN <<EOF
 set -Eeu
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y git python3-pip
+rm -rf /var/lib/apt/lists/*
+apt-get clean
 pip3 install -y onnxruntime_gpu
 pip3 install -r requirements.txt
 EOF
