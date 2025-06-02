@@ -1,0 +1,10 @@
+FROM nvcr.io/nvidia/base/ubuntu
+
+RUN <<EOF
+set -Eeu
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends bc bzip2 can-utils ca-certificates gnupg2 gstreamer1.0-alsa gstreamer1.0-libav gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools i2c-tools iw kbd kmod language-pack-en-base libcanberra-gtk3-module libdrm-dev libgles2 libglvnd-dev libgtk-3-0 libpython2.7 libudev1 libvulkan1 libzmq5 mtd-utils parted pciutils python-is-python3 python3 python3-pexpect python3-distutils python3-numpy sox udev vulkan-tools wget wireless-tools wpasupplicant
+rm -rf /var/lib/apt/lists/*
+apt-get clean
+EOF
