@@ -82,6 +82,7 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger(__name__)
     ort_sess = ort.InferenceSession(MODEL_PATH, providers=PROVIDERS)
+    logger.info(f"ONNX Runtime device: {ort.get_device()}")
     nparr = np.fromfile(INPUT_IMAGE_PATH, np.uint8)
     nparr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     preprocessed, scale, original_image = preprocess(nparr)
