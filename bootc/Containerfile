@@ -5,7 +5,7 @@ ARG ADMIN_USERNAME=demo \
     NVIDIA_KERNEL_VERSION=5.14.0-427.22.1.el9_4
 
 RUN set -Eeuo pipefail ; \
-    if ! grep -qxF 'keepcache=1'; then \
+    if ! grep -qxF 'keepcache=1' /etc/dnf/dnf.conf; then \
       sed -i.bak '/^\[main\]$/a keepcache=1' /etc/dnf/dnf.conf ; \
     fi ; \
     echo "Replacing current kernel with a version compatible with the kernel modules shipped by Nvidia" ; \
@@ -28,5 +28,4 @@ RUN set -Eeuo pipefail ; \
 ADD --chown=root:root root /
 
 RUN set -Eeuo pipefail ; \
-    systemctl enable nvidia-ctk-init.service ; \
-    systemctl enable repo-intelligent-train.service
+    systemctl enable nvidia-ctk-init.service

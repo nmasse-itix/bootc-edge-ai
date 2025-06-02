@@ -1,16 +1,14 @@
 [Unit]
-Description=AI Auto-Pilot
+Description=AI application deployed at the Edge
 After=local-fs.target
 
 [Service]
 ExecStartPre=-podman network create --ignore app
 
 [Container]
-ContainerName=intelligent-train
-Image=quay.io/demo-ai-edge-crazy-train/intelligent-train:latest
+ContainerName=app-edge-ai
+Image=quay.io/nmasse-redhat/app-edge-ai:latest
 Network=app
-PublishPort=8080:8080
-EnvironmentFile=/etc/intelligent-train.env
 
 # Needed for Nvidia GPU Acceleration
 PodmanArgs=--runtime /usr/bin/nvidia-container-runtime
