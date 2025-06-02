@@ -1,6 +1,6 @@
 FROM quay.io/nmasse-redhat/jetpack-multiarch:r36.4.0
 
-ADD *.py *.jpg *.onnx /opt/app
+ADD *.py *.jpg *.onnx requirements.txt /opt/app
 WORKDIR /opt/app
 RUN <<EOF
 set -Eeu
