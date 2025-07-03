@@ -1,35 +1,42 @@
-FROM quay.io/nmasse-redhat/jetpack-multiarch:r36.4.0
+FROM nvcr.io/nvidia/l4t-jetpack:r36.3.0
 
+ARG PYPI_MIRROR_URL
 ADD *.py *.jpg *.onnx requirements.txt /opt/app
 WORKDIR /opt/app
 RUN <<EOF
 set -Eeu
 
-# Tell dpkg-configure to avoid asking questions...
+# Install pip
+echo "Installing pip for $(python3 -V)..."
 export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y python3-pip
+rm -rf /var/lib/apt/lists/*
+apt-get clean
 
 # No caching
 export PIP_NO_CACHE_DIR=1
 
-# Install git + pip
-apt update
-apt install -y git python3-pip
-rm -rf /var/lib/apt/lists/*
-apt-get clean
+# Local PyPi repository ?
+if [ -n "${PYPI_MIRROR_URL:-}" ]; then
+  pip config set global.index-url "${PYPI_MIRROR_URL}"
+fi
 
 # Install Python dependencies
 case "$(arch)" in
 aarch64)
   echo "Downloading onnxruntime_gpu from Nvidia"
-  wget -q https://nvidia.box.com/shared/static/i7n40ki3pl2x57vyn4u7e9asyiqlnl7n.whl -O onnxruntime_gpu-1.16.0-cp310-cp310-linux_aarch64.whl
-  pip3 install onnxruntime_gpu-1.16.0-cp310-cp310-linux_aarch64.whl
-  rm -f onnxruntime_gpu-1.16.0-cp310-cp310-linux_aarch64.whl
+  # See https://elinux.org/Jetson_Zoo#ONNX_Runtime for updates
+  wget -q https://nvidia.box.com/shared/static/6l0u97rj80ifwkk8rqbzj1try89fk26z.whl -O onnxruntime_gpu-1.19.0-cp310-cp310-linux_aarch64.whl
+  pip3 install onnxruntime_gpu-1.19.0-cp310-cp310-linux_aarch64.whl
+  rm -f onnxruntime_gpu-1.19.0-cp310-cp310-linux_aarch64.whl
   ;;
 x86_64)
   pip3 install onnxruntime_gpu
   ;;
 esac
 pip3 install -r requirements.txt
+rm -f $HOME/.config/pip/pip.conf
 EOF
 
 ENTRYPOINT [ "python3", "app.py" ]

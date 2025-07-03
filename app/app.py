@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import numpy as np
 import time
 import onnxruntime as ort
