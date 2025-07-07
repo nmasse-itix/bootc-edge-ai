@@ -1,9 +1,11 @@
 [Unit]
 Description=AI application deployed at the Edge
-After=local-fs.target
+After=local-fs.target nvidia-ctk-init.service
+Wants=nvidia-ctk-init.service
 
 [Service]
 ExecStartPre=-podman network create --ignore app
+Environment=REGISTRY_AUTH_FILE=/etc/ostree/auth.json
 
 [Container]
 ContainerName=app-edge-ai
@@ -11,8 +13,7 @@ Image=quay.io/nmasse-redhat/app-edge-ai:latest
 Network=app
 
 # Needed for Nvidia GPU Acceleration
-PodmanArgs=--runtime /usr/bin/nvidia-container-runtime
-GroupAdd=keep-groups
+PodmanArgs=--runtime /usr/bin/nvidia-container-runtime --group-add=keep-groups
 SecurityLabelDisable=true
 Environment=NVIDIA_VISIBLE_DEVICES=nvidia.com/gpu=all
 

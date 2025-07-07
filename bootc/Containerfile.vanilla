@@ -1,0 +1,55 @@
+FROM registry.redhat.io/rhel9/rhel-bootc:9.4
+
+ARG ADMIN_USERNAME=demo \
+    ADMIN_PASSWORD=redhat \
+    NVIDIA_KERNEL_VERSION=5.14.0-427.22.1.el9_4 \
+    ENABLE_DNF_CACHE=1 \
+    LOCAL_RPM_REPO=0
+
+RUN <<EOF
+set -Eeuo pipefail
+
+if [[ "$ENABLE_DNF_CACHE" == "1" ]] && ! grep -qxF 'keepcache=1' /etc/dnf/dnf.conf; then
+  echo "Disabling dnf cache..."
+  sed -i.bak '/^\[main\]$/a keepcache=1' /etc/dnf/dnf.conf
+fi
+
+if [[ "$LOCAL_RPM_REPO" == "1" ]]; then
+  echo "Disabling Subscription Manager because we have no internet connection and no satelite..."
+  echo -e "[main]\nenabled=0" > /etc/dnf/plugins/subscription-manager.conf
+fi
+
+if [ -n "$NVIDIA_KERNEL_VERSION" ]; then
+  echo "Replacing current kernel with a version compatible with the kernel modules shipped by Nvidia"
+  mkdir -p /tmp/rpms
+  dnf download -y --destdir /tmp/rpms kernel{,-core,-modules,-modules-core}-$NVIDIA_KERNEL_VERSION
+  rpm-ostree override replace /tmp/rpms/*.rpm
+  rm -rf /tmp/rpms
+fi
+
+if [[ "$LOCAL_RPM_REPO" != "1" ]]; then
+  dnf config-manager --enable codeready-builder-for-rhel-9-$(arch)-rpms
+  dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+fi
+
+dnf install -y mkpasswd NetworkManager-wifi podman skopeo git
+if [[ "$(arch)" == "aarch64" ]]; then
+  echo "Installing the Nvidia stuff..." ; \
+  if [[ "$LOCAL_RPM_REPO" != "1" ]]; then
+    curl -sSfL -o /etc/yum.repos.d/nvidia-l4t.repo https://repo.download.nvidia.com/jetson/rhel-9.4/r36.3.1/nvidia-l4t.repo
+    curl -sSfL -o /etc/yum.repos.d/nvidia-container-toolkit.repo https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+    dnf config-manager --enable nvidia-container-toolkit-experimental
+  fi
+  dnf install -y nvidia-jetpack-kmod nvidia-jetpack-all nvidia-container-toolkit-base
+fi
+
+if [ -n "$ADMIN_USERNAME" ]; then
+  useradd -m -G wheel -p "$(echo -n "$ADMIN_PASSWORD" | mkpasswd -m bcrypt --stdin)" "$ADMIN_USERNAME"
+fi
+EOF
+
+ADD --chown=root:root root /
+
+RUN set -Eeuo pipefail ; \
+    systemctl enable nvidia-ctk-init.service ; \
+    systemctl enable git-repo.service

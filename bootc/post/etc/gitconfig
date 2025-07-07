@@ -1,0 +1,2 @@
+[credential]
+  helper=store --file /etc/git/git-credentials

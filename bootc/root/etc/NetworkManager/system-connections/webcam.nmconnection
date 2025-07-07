@@ -1,0 +1,17 @@
+[connection]
+id=webcam
+uuid=a97f051e-2924-4327-9838-80f85f9bcee8
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+
+[ipv4]
+address1=172.168.2.2/24
+method=manual
+
+[ipv6]
+addr-gen-mode=default
+method=disabled
+
+[proxy]

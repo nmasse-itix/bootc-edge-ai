@@ -7,8 +7,17 @@ spec:
   workspaces:
   - name: source-workspace
   - name: registry-token
+    optional: true
   - name: caches
+    optional: true
   - name: entitlements
+    optional: true
+  - name: git-auth
+    optional: true
+  - name: registries-conf
+    optional: true
+  - name: rclone-config
+    optional: true
 
   params:
   - name: git-url
@@ -16,14 +25,19 @@ spec:
   - name: git-revision
     type: string
     default: main
-  - name: image-name
+  - name: bootc-image-name
     type: string
-  - name: context-dir
+  - name: app-image-name
     type: string
-    default: "."
-  - name: containerfile-path
+  - name: rclone-model-src
     type: string
-    default: "Containerfile"
+  - name: rclone-model-dest
+    type: string
+  - name: build-architectures
+    type: array
+  - name: pypi-mirror-url
+    type: string
+    optional: true
 
   tasks:
 
@@ -39,18 +53,62 @@ spec:
     workspaces:
     - name: output
       workspace: source-workspace
-  
-  - name: buildah-bootc
+    - name: basic-auth
+      workspace: git-auth
+
+  - name: fetch-model
     runAfter: ["clone-repo"]
     taskRef:
-      name: buildah-bootc
+      kind: Task
+      name: rclone
+    params:
+    - name: rclone-src
+      value:
+      - $(params.rclone-model-src)
+    - name: rclone-dest
+      value: $(params.rclone-model-dest)
+    workspaces:
+    - name: source-workspace
+      workspace: source-workspace
+    - name: rclone-config
+      workspace: rclone-config
+
+  - name: buildah-app
+    runAfter: ["fetch-model"]
+    taskRef:
+      name: buildah
     params:
     - name: image-name
-      value: $(params.image-name)
+      value: $(params.app-image-name)
     - name: context-dir
-      value: $(params.context-dir)
+      value: app
     - name: containerfile-path
-      value: $(params.containerfile-path)
+      value: app/Containerfile
+    - name: build-architectures
+      value:
+      - $(params.build-architectures)
+    - name: pypi-mirror-url
+      value: $(params.pypi-mirror-url)
+    workspaces:
+    - name: source-workspace
+      workspace: source-workspace
+    - name: dockerconfig
+      workspace: registry-token
+
+  - name: buildah-bootc
+    runAfter: ["buildah-app"]
+    taskRef:
+      name: buildah
+    params:
+    - name: image-name
+      value: $(params.bootc-image-name)
+    - name: context-dir
+      value: bootc
+    - name: containerfile-path
+      value: bootc/Containerfile
+    - name: build-architectures
+      value:
+      - $(params.build-architectures)
     workspaces:
     - name: source-workspace
       workspace: source-workspace

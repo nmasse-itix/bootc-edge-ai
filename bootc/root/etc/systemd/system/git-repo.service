@@ -1,0 +1,14 @@
+[Unit]
+Description=Sync the git repo
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=demo
+Environment=GIT_REPO=https://github.com/nmasse-itix/bootc-edge-ai.git
+ExecStart=/bin/sh -c 'if [ -d "$HOME/bootc-edge-ai" ]; then cd "$HOME/bootc-edge-ai" && git pull ; else git clone "$GIT_REPO" -b main "$HOME/bootc-edge-ai" ; fi'
+
+[Install]
+WantedBy=multi-user.target

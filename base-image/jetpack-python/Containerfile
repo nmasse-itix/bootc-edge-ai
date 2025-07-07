@@ -1,0 +1,10 @@
+FROM artifactory.services.studio.airbushelicopters.com/poc-edge-ai/jetpack-base-image:r36.4.0
+
+RUN <<EOF
+set -Eeu
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y python3-pip
+rm -rf /var/lib/apt/lists/*
+apt-get clean
+EOF

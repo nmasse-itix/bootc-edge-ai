@@ -1,6 +1,7 @@
 resources:
 - serviceaccount-buildbot.yaml
-- task-buildah-bootc.yaml
+- task-buildah.yaml
 - task-git-clone.yaml
+- task-rclone.yaml
 - daemonset-qemu.yaml
 - storage.yaml

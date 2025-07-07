@@ -10,19 +10,29 @@ spec:
     value: https://github.com/nmasse-itix/bootc-edge-ai.git
   - name: git-revision
     value: main
-  - name: image-name
+  - name: bootc-image-name
     value: quay.io/nmasse-redhat/bootc-edge-ai
-  - name: context-dir
-    value: bootc
-  - name: containerfile-path
-    value: "bootc/Containerfile"
+  - name: app-image-name
+    value: quay.io/nmasse-redhat/app-edge-ai
+  - name: rclone-model-src
+    value: aws:nmasse-bootc-edge-ai/model.onnx
+  - name: rclone-model-dest
+    value: app/model-s3.onnx
+  - name: build-architectures
+    value:
+    - aarch64
+  # - name: pypi-mirror-url
+  #   value: http://...
   workspaces:
-  - name: caches
+  # - name: caches
+  #   persistentVolumeClaim:
+  #     claimName: bootc-caches
+  # - name: entitlements
+  #   persistentVolumeClaim:
+  #     claimName: bootc-entitlements
+  - name: rpms
     persistentVolumeClaim:
-      claimName: bootc-caches
-  - name: entitlements
-    persistentVolumeClaim:
-      claimName: bootc-entitlements
+      claimName: bootc-rpms
   - name: source-workspace
     volumeClaimTemplate:
       spec:
@@ -35,5 +45,14 @@ spec:
   - name: registry-token
     secret:
       secretName: registry-authentication
+  - name: rclone-config
+    secret:
+      secretName: rclone-config
+  #- name: git-token
+  #  secret:
+  #    secretName: github-authentication
+  #- name: registries-conf
+  #  configMap:
+  #    name: registries-conf
   taskRunTemplate:
     serviceAccountName: buildbot

@@ -13,6 +13,12 @@ oc apply -k common/
 oc apply -f pipeline.yaml
 ```
 
+## Authentication to Pypi
+
+```sh
+oc create secret generic pypi-mirror '--from-literal=PYPI_MIRROR_URL=https://login:password@artifactory-host/artifactory/api/pypi/pypi-virtual/simple'
+```
+
 ## Authentication to the registries
 
 ```sh
@@ -30,6 +36,41 @@ type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: $(base64 -w0 "$PWD/auth.json")
 EOF
+```
+
+```sh
+oc create configmap registries-conf --from-file=/etc/containers/registries.conf
+```
+
+## Authentication to GitHub
+
+```sh
+cat > gitconfig <<EOF
+[credential]
+  helper=store
+EOF
+oc create secret generic github-authentication --from-literal=.git-credentials=https://user:password@github.com --from-file=.gitconfig=gitconfig
+```
+
+## Rclone config for AWS S3
+
+**rclone.conf**:
+
+```ini
+[aws]
+type = s3
+provider = AWS
+access_key_id = REDACTED
+secret_access_key = REDACTED
+region = eu-west-3
+```
+
+Note: in **rclone.conf**, set **endpoint** to the hostname of your S3 gateway when on-premise.
+
+Create the secret:
+
+```sh
+oc create secret generic rclone-config --from-file=rclone.conf
 ```
 
 ## Initialize data inside the PVC
@@ -54,6 +95,8 @@ spec:
       mountPath: /caches
     - name: bootc-entitlements
       mountPath: /entitlements
+    - name: bootc-rpms
+      mountPath: /rpms
   volumes:
   - name: bootc-caches
     persistentVolumeClaim:
@@ -61,9 +104,12 @@ spec:
   - name: bootc-entitlements
     persistentVolumeClaim:
       claimName: bootc-entitlements
+  - name: bootc-rpms
+    persistentVolumeClaim:
+      claimName: bootc-rpms
 ```
 
-Then copy all the data to `/caches` and `/entitlements`.
+Then copy all the data to `/caches`, `/rpms` and `/entitlements`.
 
 ```sh
 mkdir -p entitlements
@@ -71,6 +117,7 @@ cp etc-x86_64.tar entitlements/x86_64.tar
 cp etc-aarch64.tar entitlements/aarch64.tar
 oc rsync entitlements rsync:/
 oc rsh rsync mkdir -p /caches/{x86_64,aarch64}/{rpm-ostree,dnf}
+tar -c -C /path/to/rpms | oc rsh rsync tar -x -C /rpms
 ```
 
 You can leave the Pod running or delete it with :

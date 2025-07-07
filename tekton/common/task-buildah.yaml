@@ -1,0 +1,154 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: buildah
+spec:
+  params:
+  - name: context-dir
+    type: string
+    default: .
+  - name: containerfile-path
+    type: string
+    default: Containerfile
+  - name: image-name
+    type: string
+  - name: buildah-image
+    type: string
+    default: registry.redhat.io/rhel9/buildah:latest
+  - name: build-architectures
+    type: array
+    default:
+    - x86_64
+    - aarch64
+  - name: pypi-mirror-url
+    type: string
+    optional: true
+  workspaces:
+  - name: source-workspace
+    description: Workspace containing source code
+  - name: caches
+    description: RW storage to cache build artefacts
+    mountPath: /caches
+    optional: true
+  - name: entitlements
+    description: RW storage for RHEL entitlements
+    mountPath: /entitlements
+    optional: true
+  - description: An optional workspace that allows providing a .docker/config.json file for Buildah to access the container registry. The file should be placed at the root of the Workspace with name config.json or .dockerconfigjson.
+    name: dockerconfig
+    optional: true
+    mountPath: /auth
+  - name: registries-conf
+    optional: true
+    mountPath: /registries
+  volumes:
+  - name: container-storage
+    emptyDir: {}
+  steps:
+  - name: build
+    image: $(params.buildah-image)
+    env:
+    - name: STORAGE_DRIVER
+      value: overlay
+    - name: SCRIPT_DEBUG
+      value: "false"
+    - name: TARGET_IMAGE
+      value: "$(params.image-name)"
+    - name: PYPI_MIRROR_URL
+      value: "$(params.pypi-mirror-url)"
+    args:
+    - "$(params.build-architectures)"
+    script: |
+      #!/bin/bash
+      set -Eeuo pipefail
+
+      # If debug is enabled, print out command that are executed
+      if [[ "${SCRIPT_DEBUG:-false}" == "true" ]]; then
+        set -x
+      fi
+
+      # Print versions of the program we use
+      echo "=== Environment ==="
+      echo "---> Buildah"
+      buildah version
+      echo
+      echo "---> bash"
+      bash --version
+      echo
+      echo "---> OS"
+      cat /etc/redhat-release
+      echo
+
+      # Check what is available and set env variables
+      if [ -f /registries/registries.conf ]; then
+        export CONTAINERS_REGISTRIES_CONF=/registries/registries.conf
+      fi
+      if [ -f /auth/.dockerconfigjson ]; then
+        export REGISTRY_AUTH_FILE=/auth/.dockerconfigjson
+      fi
+
+      # Extract the parent image name
+      FROM="$(sed -r 's/^FROM\s+(.*)\s*/\1/;t;d' "$(workspaces.source-workspace.path)/$(params.containerfile-path)")"
+      echo "Detected $FROM as parent image."
+
+      # Build images
+      declare -A PODMAN_ARCH_OPTS=(["aarch64"]="--platform linux/arm64/v8" ["x86_64"]="--platform linux/amd64")
+      buildah manifest create localhost/image
+      for arch; do
+        declare -a PODMAN_OPTS=( )
+        if [ -n "${PYPI_MIRROR_URL:}" ]; then
+          PODMAN_OPTS+=( "--build-arg" "PYPI_MIRROR_URL=${PYPI_MIRROR_URL}" )
+        fi
+        if [ -f "/entitlements/$arch.tar" ]; then
+          echo "Using RHEL entitlements..."
+          rm -rf /tmp/entitlements
+          mkdir -p /tmp/entitlements
+          tar -xf /entitlements/$arch.tar -C /tmp/entitlements
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/pki/entitlement/:/etc/pki/entitlement:z" )
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/rhsm:/etc/rhsm:z" )
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/pki/entitlement/:/run/secrets/etc-pki-entitlement:z" )
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/rhsm:/run/secrets/rhsm:z" )
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/rhsm:/run/secrets/rhsm:z" )
+          PODMAN_OPTS+=( "-v" "/tmp/entitlements/etc/yum.repos.d:/etc/yum.repos.d:z" )
+        fi
+        if [ -d "/caches/$arch/" ]; then
+          echo "Enabling cache..."
+          PODMAN_OPTS+=( "-v" "/caches/$arch/dnf:/var/cache/dnf:z" )
+          PODMAN_OPTS+=( "-v" "/caches/$arch/rpm-ostree:/var/cache/rpm-ostree:z" )
+        fi
+        if [ -d "/rpms/$arch/" ]; then
+          echo "Enabling RPM repositories..."
+          mkdir -p /tmp/rpms
+          cat > /tmp/rpms/local-rpms.repo <<EOF
+      [local-rpms]
+      name=Local RPMs Repository
+      baseurl=file:///opt/local-repo
+      enabled=1
+      gpgcheck=0
+      EOF
+          PODMAN_OPTS+=( "-v" "/tmp/rpms:/etc/yum.repos.d:z" )
+          PODMAN_OPTS+=( "-v" "/rpms/$arch:/opt/local-repo:z" )
+        fi
+        PODMAN_OPTS+=( "-f" "$(workspaces.source-workspace.path)/$(params.containerfile-path)" )
+        PODMAN_OPTS+=( "--no-cache" )
+
+        echo "Building image for $arch..."
+        ( set -x ; buildah bud ${PODMAN_ARCH_OPTS[$arch]} "${PODMAN_OPTS[@]}" "-t" "localhost/image-$arch" $(workspaces.source-workspace.path)/$(params.context-dir) )
+        buildah manifest add localhost/image localhost/image-$arch
+        buildah rmi "$FROM"
+      done
+
+      # Push Manifest
+      echo "Pushing to $TARGET_IMAGE..."
+      buildah manifest push localhost/image docker://$TARGET_IMAGE
+    securityContext:
+      ## Buildah needs privileges to use the "overlay" Storage Driver.
+      privileged: true
+
+      ## The "vfs" Storage Driver however requires less privileges.
+      #capabilities:
+      #  add:
+      #    - SETFCAP
+    volumeMounts:
+    - name: container-storage
+      mountPath: /var/lib/containers

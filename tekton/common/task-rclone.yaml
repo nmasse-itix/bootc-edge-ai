@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: rclone
+spec:
+  params:
+  - name: rclone-image
+    type: string
+    default: docker.io/rclone/rclone:latest
+  - name: rclone-src
+    type: array
+    default: []
+  - name: rclone-dest
+    type: string
+    default: "."
+  workspaces:
+  - name: source-workspace
+    description: Workspace containing source code
+  - name: rclone-config
+    optional: true
+    mountPath: /etc/rclone
+  steps:
+  - name: copy
+    image: $(params.rclone-image)
+    args:
+    - "$(params.rclone-src[*])"
+    script: |
+      #!/bin/sh
+      set -eu
+      cd $(workspaces.source-workspace.path)
+      for source; do
+        rclone --config=/etc/rclone/rclone.conf copy --progress "$source" "$(params.rclone-dest)"
+      done
