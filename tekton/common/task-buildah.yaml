@@ -22,7 +22,7 @@ spec:
     - aarch64
   - name: pypi-mirror-url
     type: string
-    optional: true
+    default: ""
   workspaces:
   - name: source-workspace
     description: Workspace containing source code
@@ -96,7 +96,7 @@ spec:
       buildah manifest create localhost/image
       for arch; do
         declare -a PODMAN_OPTS=( )
-        if [ -n "${PYPI_MIRROR_URL:}" ]; then
+        if [ -n "${PYPI_MIRROR_URL:-}" ]; then
           PODMAN_OPTS+=( "--build-arg" "PYPI_MIRROR_URL=${PYPI_MIRROR_URL}" )
         fi
         if [ -f "/entitlements/$arch.tar" ]; then
