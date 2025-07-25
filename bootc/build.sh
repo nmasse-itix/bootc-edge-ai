@@ -9,7 +9,6 @@ source ./env.sh
 ./common.sh
 
 # Build images
-declare -A PODMAN_ARCH_OPTS=(["aarch64"]="--platform linux/arm64/v8" ["x86_64"]="--platform linux/amd64")
 for arch in "${ARCHITECTURES[@]}"; do
   echo "Building $NAME image for $arch..."
   rm -rf etc

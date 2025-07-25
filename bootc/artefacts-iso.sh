@@ -23,11 +23,10 @@ declare -A ARCH_KERNEL_CMDLINE=(["aarch64"]="console=ttyTCU0 console=tty0" ["x86
 # $(base32 -w 80 auth.json)
 # EOB32
 
-declare -a KICKSTART_ADDITIONAL_FILES_TAR_CMD_PRE=(  )
-declare -a KICKSTART_ADDITIONAL_FILES_TAR_CMD_POST=( tar -zc -C post --owner=root --group=root . )
 declare -A KICKSTART_SNIPPETS=()
 KICKSTART_SNIPPETS+=( ["restart networkmanager"]="
 systemctl restart --no-block NetworkManager.service
+/usr/bin/nm-online -s -q
 " )
 KICKSTART_SNIPPETS+=( ["bootc switch"]="
 bootc switch --mutate-in-place --transport registry $TARGET_IMAGE
@@ -41,7 +40,8 @@ chmod 600 /etc/ostree/auth.json
 KICKSTART_SNIPPETS+=( ["/etc/containers/registries.conf.d/bootc-registry.conf"]="
 cat > /etc/containers/registries.conf.d/bootc-registry.conf <<\"EOF\"
 [[registry]]
-location=\"${TARGET_IMAGE%%/*}\"
+prefix=\"${TARGET_IMAGE%%/*}\"
+location=\"${TARGET_IMAGE%%/*}:80\"
 insecure=true
 EOF
 " )

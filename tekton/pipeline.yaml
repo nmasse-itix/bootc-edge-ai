@@ -118,3 +118,11 @@ spec:
       workspace: caches
     - name: entitlements
       workspace: entitlements
+
+  - name: ota-update
+    runAfter: ["buildah-bootc"]
+    taskRef:
+      name: ota-update
+    params:
+    - name: otaVersion
+      value: $(tasks.buildah-bootc.results.image-digest)

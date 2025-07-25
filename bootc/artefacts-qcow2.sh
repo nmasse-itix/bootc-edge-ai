@@ -19,7 +19,7 @@ function bootc_image_builder () {
              -v "$config_file:/config.toml:ro" -v "$output:/output" -v "$rpmmd:/rpmmd" -v "$store:/store" \
              -v /var/lib/containers/storage:/var/lib/containers/storage \
              -v "$REGISTRY_AUTH_FILE:/auth.json:ro" -e "REGISTRY_AUTH_FILE=/auth.json" \
-             "$BOOTC_IMAGE:$RHEL_VERSION" --type "$type" --config /config.toml "$image" "${args[@]}"
+             "$BOOTC_IMAGE:$BOOTC_VERSION" --type "$type" --config /config.toml "$image" "${args[@]}"
 }
 
 arch="$(arch)"

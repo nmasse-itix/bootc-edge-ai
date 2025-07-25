@@ -52,6 +52,14 @@ EOF
 oc create secret generic github-authentication --from-literal=.git-credentials=https://user:password@github.com --from-file=.gitconfig=gitconfig
 ```
 
+## Authentication to MQTT
+
+Set the tekton password in the mosquitto passwd file (**common/mosquitto.conf**) and then:
+
+```sh
+oc create secret generic mqtt-config --from-literal=OTA_MQTT_URL=mqtts://tekton:secret@mosquitto-build-multiarch.apps.nmasse-q2-2025.sandbox1038.opentlc.com:443/bootc/updates
+```
+
 ## Rclone config for AWS S3
 
 **rclone.conf**:

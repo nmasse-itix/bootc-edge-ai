@@ -1,5 +1,7 @@
 resources:
 - serviceaccount-buildbot.yaml
+- mosquitto.yaml
+- task-ota-update.yaml
 - task-buildah.yaml
 - task-git-clone.yaml
 - task-rclone.yaml

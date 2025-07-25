@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ota-update
+spec:
+  params:
+  - name: otaVersion
+    type: string
+  steps:
+  - name: ota-update
+    image: docker.io/library/eclipse-mosquitto:latest
+    env:
+    - name: OTA_MQTT_URL
+      valueFrom:
+        secretKeyRef:
+          name: "mqtt-config"
+          key: "OTA_MQTT_URL"
+    - name: OTA_VERSION
+      value: "$(params.otaVersion)"
+    script: |
+      #!/bin/bash
+      set -Eeuo pipefail
+      echo "Sending the OTA firmware udate notification for version $OTA_VERSION on $OTA_MQTT_TOPIC..."
+      mosquitto_pub -L "$OTA_MQTT_URL" -m "$OTA_VERSION" -d

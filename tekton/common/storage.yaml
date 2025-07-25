@@ -23,3 +23,16 @@ spec:
       storage: 1Gi
   volumeMode: Filesystem
   storageClassName: efs-csi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bootc-rpms
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeMode: Filesystem
+  storageClassName: efs-csi
