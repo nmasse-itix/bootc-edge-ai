@@ -20,19 +20,19 @@ spec:
     value: app/model-s3.onnx
   - name: build-architectures
     value:
-    - aarch64
+    - x86_64
   # - name: pypi-mirror-url
   #   value: http://...
   workspaces:
-  # - name: caches
-  #   persistentVolumeClaim:
-  #     claimName: bootc-caches
-  # - name: entitlements
-  #   persistentVolumeClaim:
-  #     claimName: bootc-entitlements
-  - name: rpms
+  - name: caches
     persistentVolumeClaim:
-      claimName: bootc-rpms
+      claimName: bootc-caches
+  - name: entitlements
+    persistentVolumeClaim:
+      claimName: bootc-entitlements
+  # - name: rpms
+  #   persistentVolumeClaim:
+  #     claimName: bootc-rpms
   - name: source-workspace
     volumeClaimTemplate:
       spec:
@@ -56,3 +56,5 @@ spec:
   #    name: registries-conf
   taskRunTemplate:
     serviceAccountName: buildbot
+  timeouts:
+    pipeline: 2h

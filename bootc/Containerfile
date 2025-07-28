@@ -10,7 +10,7 @@ RUN <<EOF
 set -Eeuo pipefail
 
 if [[ "$ENABLE_DNF_CACHE" == "1" ]] && ! grep -qxF 'keepcache=1' /etc/dnf/dnf.conf; then
-  echo "Disabling dnf cache..."
+  echo "Enabling dnf cache..."
   sed -i.bak '/^\[main\]$/a keepcache=1' /etc/dnf/dnf.conf
 fi
 

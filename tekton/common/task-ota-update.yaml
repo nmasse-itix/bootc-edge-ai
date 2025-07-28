@@ -18,7 +18,7 @@ spec:
     - name: OTA_VERSION
       value: "$(params.otaVersion)"
     script: |
-      #!/bin/bash
-      set -Eeuo pipefail
-      echo "Sending the OTA firmware udate notification for version $OTA_VERSION on $OTA_MQTT_TOPIC..."
-      mosquitto_pub -L "$OTA_MQTT_URL" -m "$OTA_VERSION" -d
+      #!/bin/sh
+      set -eu
+      echo "Sending the OTA firmware udate notification for version $OTA_VERSION..."
+      mosquitto_pub --retain -L "$OTA_MQTT_URL" -m "$OTA_VERSION" -d

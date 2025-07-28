@@ -3,7 +3,7 @@
 ## Tekton configuration
 
 ```sh
-oc patch configmap/feature-flags -n openshift-pipelines --type=merge -p '{"data":{"disable-affinity-assistant":"true"}}'
+oc patch tektonconfig/config -n openshift-pipelines --type=merge -p '{"spec":{"pipeline":{"coschedule":"disabled","disable-affinity-assistant":true}}}'
 ```
 
 ## Pipeline manifests
@@ -57,7 +57,7 @@ oc create secret generic github-authentication --from-literal=.git-credentials=h
 Set the tekton password in the mosquitto passwd file (**common/mosquitto.conf**) and then:
 
 ```sh
-oc create secret generic mqtt-config --from-literal=OTA_MQTT_URL=mqtts://tekton:secret@mosquitto-build-multiarch.apps.nmasse-q2-2025.sandbox1038.opentlc.com:443/bootc/updates
+oc create secret generic mqtt-config --from-literal=OTA_MQTT_URL=mqtt://tekton:secret@mosquitto/bootc/updates
 ```
 
 ## Rclone config for AWS S3

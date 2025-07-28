@@ -33,6 +33,10 @@ spec:
     description: RW storage to cache build artefacts
     mountPath: /caches
     optional: true
+  - name: rpms
+    description: Local RPM Repository
+    mountPath: /rpms
+    optional: true
   - name: entitlements
     description: RW storage for RHEL entitlements
     mountPath: /entitlements

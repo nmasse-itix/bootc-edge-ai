@@ -1,0 +1,15 @@
+[Unit]
+Description=Over-the-Air (OTA) Update Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/update.sh
+EnvironmentFile=/etc/ota-update/ota.env
+Restart=always
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

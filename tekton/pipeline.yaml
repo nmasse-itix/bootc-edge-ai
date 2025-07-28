@@ -12,6 +12,8 @@ spec:
     optional: true
   - name: entitlements
     optional: true
+  - name: rpms
+    optional: true
   - name: git-auth
     optional: true
   - name: registries-conf
@@ -44,11 +46,11 @@ spec:
   - name: clone-repo
     taskRef:
       kind: Task
-      name: git-clone
+      name: git
     params:
-    - name: url
+    - name: URL
       value: $(params.git-url)
-    - name: revision
+    - name: REVISION
       value: $(params.git-revision)
     workspaces:
     - name: output
@@ -118,6 +120,8 @@ spec:
       workspace: caches
     - name: entitlements
       workspace: entitlements
+    - name: rpms
+      workspace: rpms
 
   - name: ota-update
     runAfter: ["buildah-bootc"]

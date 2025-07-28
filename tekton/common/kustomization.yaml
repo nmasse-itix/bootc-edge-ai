@@ -3,7 +3,7 @@ resources:
 - mosquitto.yaml
 - task-ota-update.yaml
 - task-buildah.yaml
-- task-git-clone.yaml
+- task-git.yaml
 - task-rclone.yaml
 - daemonset-qemu.yaml
 - storage.yaml
